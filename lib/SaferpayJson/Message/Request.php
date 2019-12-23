@@ -3,6 +3,8 @@
 namespace Ticketpark\SaferpayJson\Message;
 
 use Buzz\Browser;
+use Buzz\Client\MultiCurl as CurlClient;
+use Nyholm\Psr7\Factory\Psr17Factory;
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use JMS\Serializer\Annotation\Exclude;
 use JMS\Serializer\Annotation\SerializedName;
@@ -162,8 +164,8 @@ abstract class Request
     public function getBrowser()
     {
         if (null == $this->browser) {
-
-            return new Browser();
+            $client = new CurlClient(new Psr17Factory());
+            return new Browser($client, new Psr17Factory());
         }
 
         return $this->browser;
@@ -188,17 +190,17 @@ abstract class Request
             throw new HttpRequestException($e->getMessage());
         }
 
-        if ($response->isClientError()) {
-
-            return $this->getSerializer()->deserialize($response->getContent(), static::ERROR_RESPONSE_CLASS, 'json');
-        }
+//        if ($response->isClientError()) {
+//
+//            return $this->getSerializer()->deserialize($response->getContent(), static::ERROR_RESPONSE_CLASS, 'json');
+//        }
 
         if (200 !== $response->getStatusCode()) {
 
             throw new HttpRequestException(sprintf('Unexpected http request response with status code %s.', $response->getStatusCode()));
         }
 
-         return $this->getSerializer()->deserialize($response->getContent(), static::RESPONSE_CLASS, 'json');
+        return $this->getSerializer()->deserialize($response->getBody()->getContents(), static::RESPONSE_CLASS, 'json');
     }
 
     /**
